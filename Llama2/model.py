@@ -80,7 +80,7 @@ class SelfAttention(nn.Module):
 			values = self.cache_v[: batch_size, : start_pos + seq_len]
 
 		# For every group, copying same k & v vectors for each q belonging to that group.
-		# (batch_size, seq_len, n_kv_heads, head_dim) -> (batch_size, seq_len, n_kv_heads * groups, head_dim)
+		# (batch_size, seq_len_kv, n_kv_heads, head_dim) -> (batch_size, seq_len_kv, n_kv_heads * groups, head_dim)
 		keys, values = repeat_kv(keys, values, self.groups)
 
 		# (batch_size, seq_len, n_q_heads, head_dim) -> (batch_size, n_q_heads, seq_len, head_dim)
@@ -144,9 +144,9 @@ class TransformerBlock(nn.Module):
 		return out_attention + out_ff
 
 
-class Transformer(nn.Module):
+class Llama2(nn.Module):
 	def __init__(self, args: ModelArgs):
-		super(Transformer, self).__init__()
+		super(Llama2, self).__init__()
 		assert args.vocab_size > 0, "Vocab size cannot be empty"
 		self.args = args
 		self.token_embeddings = nn.Embedding(args.vocab_size, args.dim)

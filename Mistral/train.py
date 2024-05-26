@@ -8,10 +8,10 @@ from torch.nn import utils
 
 from transformers import AutoTokenizer
 
-from model import ModelArgs, Llama2
+from model import ModelArgs, Mistral
 
 
-LLAMA2_TOKENIZER = "meta-llama/Llama-2-7b-hf"
+MISTRAL_TOKENIZER = "mistralai/Mistral-7B-v0.1"
 TEXT_FILE = "sample_data/input.txt"
 EPOCH = 30
 BATCH_SIZE = 32
@@ -65,12 +65,12 @@ def train():
 		torch.set_default_dtype(torch.float32)
 	
 	sentences = extract_training_sentences()
-	tokenizer = AutoTokenizer.from_pretrained(LLAMA2_TOKENIZER)
+	tokenizer = AutoTokenizer.from_pretrained(MISTRAL_TOKENIZER)
 	extra_vocab = tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 	vocab_size = tokenizer.vocab_size + extra_vocab
 	model_args = ModelArgs(vocab_size=vocab_size, device=DEVICE, 
 		max_batch_size=BATCH_SIZE, max_seq_len=MAX_SEQ_LEN)
-	model = Llama2(model_args).to(DEVICE)
+	model = Mistral(model_args).to(DEVICE)
 	# Following Llama paper.
 	optimizer = torch.optim.AdamW(model.parameters(), betas=(0.9, 0.95), eps=1e-5, weight_decay=0.1)
 	

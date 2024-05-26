@@ -2,8 +2,8 @@ import torch
 
 from transformers import AutoTokenizer
 
-from train import LLAMA2_TOKENIZER, CKPT_PATH
-from model import ModelArgs, Llama2
+from train import MISTRAL_TOKENIZER, CKPT_PATH
+from model import ModelArgs, Mistral
 
 
 BATCH_SIZE = 1
@@ -19,11 +19,11 @@ def complete_prompt(prompt: str) -> None:
 	if DEVICE == "cuda":
 		torch.set_default_dtype(torch.float16)
 
-	tokenizer = AutoTokenizer.from_pretrained(LLAMA2_TOKENIZER)
+	tokenizer = AutoTokenizer.from_pretrained(MISTRAL_TOKENIZER)
 	extra_vocab = tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 	vocab_size = tokenizer.vocab_size + extra_vocab
 	model_args = ModelArgs(vocab_size=vocab_size, device=DEVICE, max_batch_size=BATCH_SIZE, max_seq_len=MAX_SEQ_LEN)
-	model = Llama2(model_args).to(DEVICE)
+	model = Mistral(model_args).to(DEVICE)
 	model.load_weights(CKPT_PATH)
 	
 	prompt_token_ids = tokenizer(prompt, truncation=True, max_length=MAX_SEQ_LEN, return_attention_mask =False)['input_ids']
@@ -51,18 +51,18 @@ def complete_prompt(prompt: str) -> None:
 		print(f"Prompt Completion:\n{tokenizer.decode(prompt_token_ids[1:])}")
 
 
-def test() -> None:
+def text_generation() -> None:
 	"""
 	This function will randomly generate sentences.
 	"""
 	if DEVICE == "cuda":
 		torch.set_default_dtype(torch.float16)
 
-	tokenizer = AutoTokenizer.from_pretrained(LLAMA2_TOKENIZER)
+	tokenizer = AutoTokenizer.from_pretrained(MISTRAL_TOKENIZER)
 	extra_vocab = tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 	vocab_size = tokenizer.vocab_size + extra_vocab
 	model_args = ModelArgs(vocab_size=vocab_size, device=DEVICE, max_batch_size=BATCH_SIZE, max_seq_len=MAX_SEQ_LEN)
-	model = Llama2(model_args).to(DEVICE)
+	model = Mistral(model_args).to(DEVICE)
 	model.load_weights(CKPT_PATH)
 	# seq_len will be 1 during testing.
 	input_token_id = torch.full((BATCH_SIZE, 1), tokenizer.bos_token_id).to(DEVICE)
@@ -86,6 +86,6 @@ def test() -> None:
 
 
 if __name__ == "__main__":
-	test()
-	complete_prompt("First Citizen:We are accounted poor citizens, the patricians good.\nWhat authority surfeits on \
+	text_generation()
+	complete_prompt("First Citizen:\nWe are accounted poor citizens, the patricians good.\nWhat authority surfeits on \
 		would relieve us: if they")
