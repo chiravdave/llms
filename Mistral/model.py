@@ -24,6 +24,10 @@ class ModelArgs:
 	device: str = 'cuda'
 	max_seq_len: int = 512
 
+	# MOE Config.
+	num_experts: int = 2
+	top_k_experts: int = 1
+
 	# Needed for kv cache
 	max_batch_size: int = 32
 	window_size: int = 128
@@ -111,6 +115,35 @@ class SelfAttention(nn.Module):
 		return self.wo(attention)
 
 
+class MOELayer(nn.Module):
+	def __init__(self, experts:nn.ModuleList, gate: nn.Linear, args: ModelArgs):
+		super(MOELayer, self).__init__()
+		self.experts = experts
+		self.gate = gate
+		self.top_k_experts = args.top_k_experts
+
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
+		gate_logits = self.gate(x)
+		weights, selected_experts = torch.topk(gate_logits, self.top_k_experts)
+		weights = F.softmax(weights, dim=-1)
+
+		result = torch.zeros_like(x)
+		# Looping over the experts.
+		for idx, expert in enumerate(self.experts):
+			# Gathering indices across all the dimensions where the expert is selected.
+			batch_idx, seq_idx, nth_expert = torch.where(selected_experts == idx)
+			# Using the above indices to gather the corresponding weights for the expert.
+			expert_weights = weights[batch_idx, seq_idx, nth_expert]
+			# Runing the expert against the inputs where it is selected.
+			expert_outputs = expert(x[batch_idx, seq_idx])
+			# Calculating weighted output for the expert.
+			weighted_output = expert_outputs * expert_weights.unsqueeze(-1)
+			# Accumulating the weighted output into the final result.
+			result[batch_idx, seq_idx] += weighted_output
+
+		return result
+
+
 class FeedForward(nn.Module):
 	def __init__(self, args: ModelArgs):
 		super(FeedForward, self).__init__()
@@ -140,9 +173,18 @@ class TransformerBlock(nn.Module):
 		self.dim = args.dim
 		self.head_dim = self.dim // self.n_heads
 		self.attention = SelfAttention(args)
-		self.ffn = FeedForward(args)
 		self.attention_norm = RMSNorm(self.dim, args.norm_eps)
 		self.ffn_norm = RMSNorm(self.dim, args.norm_eps)
+
+		if args.num_experts > 1:
+			print("Using MOELayer")
+			self.ffn = MOELayer(
+				experts=nn.ModuleList([FeedForward(args) for _ in range(args.num_experts)]),
+				gate=nn.Linear(args.dim, args.num_experts, bias=False),
+				args=args
+			)
+		else:
+			self.ffn = FeedForward(args)
 
 	def forward(self, x: torch.Tensor, start_pos: int, freqs: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
 		out_attention = x + self.attention(self.attention_norm(x), start_pos, freqs, mask)

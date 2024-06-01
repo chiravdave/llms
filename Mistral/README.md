@@ -1,6 +1,9 @@
 # Mistral
-This repository includes a pytorch implementation of Mistral model. The dataset used in the training of the model is based
-on dialogues from a play. The model is a miniature version of the actual Mistral due to infrastructure constraints.
+This repository includes a pytorch implementation of Mistral models (Base + Mixture Of Experts). The dataset used in the 
+training of the model is based on dialogues from a play. The model is a miniature version of the actual Mistral due to 
+infrastructure constraints.
+
+## Mistral Base
 
 * Epochs = 30
 * Batch Size = 32
@@ -12,10 +15,10 @@ on dialogues from a play. The model is a miniature version of the actual Mistral
 * Total KV Heads = 2
 * Vocab Size = 32001
 
-# Training Dataset
+### Training Dataset
 The training dataset is same as the one present inside the Llama2 folder. Check the file named **input.txt**.
 
-# Results
+### Results
 
 * Text Generation
 ```
@@ -75,13 +78,13 @@ And thou to thy father with thee?
 GLO
 ```
 
-* Prompt Completion:
+* Prompt Completion
 ```
 Prompt:
 
 First Citizen:
 We are accounted poor citizens, the patricians good.
-What authority surfeits on   would relieve us: if they
+What authority surfeits on would relieve us: if they
 
 
 Result:
@@ -149,4 +152,219 @@ And in thee, to thee, to thee
 For usurge and by thee,
 And then, to thee, to thee,
 And
+```
+
+## Mistral With Mixture Of Experts
+
+* Epochs = 50
+* Batch Size = 32
+* Max Seq Len = 512
+* Window Size = 128
+* Dim = 128
+* Decoder Blocks = 2
+* Total Heads = 8
+* Total KV Heads = 2
+* Vocab Size = 32001
+* Num Of Experts = 2
+* Top K Experts = 1
+
+### Training Dataset
+The training dataset is same as the one present inside the Llama2 folder. Check the file named **input.txt**.
+
+### Results
+
+* Text Generation
+```
+Test Sample 1:
+것.
+ 
+HERMIONE:
+Well, I say, I am not?
+
+DUKE VINCENTIO:
+What is the matter?
+
+Provost:
+I shall go play
+A ofman, sir, sir.
+
+DUKE VINCENTIO:
+
+ProvostILLIUS:
+I was not, sir.
+
+DORCENTIO:
+If you have a man so?
+
+AUTOLYCUS:
+A hundred, I pray, of you, sir.
+
+Clown:
+Behold youth, sir.
+
+ESCALUS:
+How now!
+
+ESCALUS:
+
+DORCAS!
+
+AUTOLYCUS:
+
+DORCAS:
+What is the matter?
+
+AUTOLYCUS:
+A hundred-me, a most-ma!'
+
+MOPSA:
+Amen.
+
+AUTOLYCUS:
+
+AUTOLYCUS:
+
+AUTOLYCUS:
+
+Clown:
+I' the absentold.
+
+MOPSA:
+How?
+
+AUT:
+I' the lark, sir.
+
+MOPSA:
+How?
+
+AUTOLYCUS:
+A hundred, sir.
+
+DORCAS:
+How?
+
+AUTOLYCUS:
+A hundred mad!
+
+AUTOLYCUS:
+This, a standings, and a most man's
+ones, a seems, for that receest advocateing both.
+
+MOPSA:
+A pair of fourscore out: and he was on his
+pawn well.
+
+DORCAS:
+How?
+
+AUTOLYCUS:
+A very true; and a man that ballad in prison.
+
+AUTOLYCUS:
+I know you well.
+
+AUTOLIO:
+I' the ask, sir.
+
+AUTOLYCUS:
+This is the tune to have no
+to prison?
+
+AUTOLYCUS:
+This nor face is coming.
+
+Clown:
+His garments, sir.
+```
+
+* Prompt Completion
+```
+Prompt:
+
+First Citizen:
+We are accounted poor citizens, the patricians good.
+What authority surfeits on would relieve us: if they
+
+
+Result:
+
+First Citizen:
+We are accounted poor citizens, the patricians good.
+What authority surfeits on would relieve us: if they
+false of any other issue of victory.
+ 
+Second Gentleman:
+No, but they will, as many, as you know, as you
+have not found their heads.
+
+CORIOLANUS:
+No, my good lord.
+
+MENENIUS:
+No, what of that?
+
+SICINIUS:
+Ay, what of that?
+
+CORIOLANUS:
+Ay, what are you then?
+
+MENENIUS:
+I do not go on the Volscian: I say.
+
+MENENIUS:
+I shall, as we were better about me
+To answer to the people: he had I'll look
+your finger with Aufidels, and the chest note
+Into your own: he shall chance after him.
+
+MENENIUS:
+'Twas authority.
+
+MENENIUS:
+It will not.
+
+CORIOLANUS:
+You have been too noble and
+As I have stood after's house.
+
+MENENIUS:
+Sir, what's the news?
+
+MENENIUS:
+I'll not mark me.
+
+CORIOLANUS:
+Well?
+
+MENENIUS:
+I'll hear you.
+
+MENENIUS:
+Sir, what's the matter?
+
+MENENIUS:
+Sir, what's.
+
+MENENIUS:
+Behold: he'sell a Romano the common anon of us
+occasion.
+
+MENENIUS:
+Sir, what's in me?
+
+MENENIUS:
+Marcius I know; and we'll show'd
+To help him in hope.
+
+MENENIUS:
+Say, what of that we do lie that;
+The which of us was coming'd?
+
+MENENIUS:
+I'll not medd them.
+
+MENENIUS:
+Sir, I
 ```

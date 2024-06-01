@@ -13,7 +13,7 @@ from model import ModelArgs, Mistral
 
 MISTRAL_TOKENIZER = "mistralai/Mistral-7B-v0.1"
 TEXT_FILE = "sample_data/input.txt"
-EPOCH = 30
+EPOCH = 50
 BATCH_SIZE = 32
 GRADIENT_CLIP = 1.0
 MAX_SEQ_LEN = 512
