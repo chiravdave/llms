@@ -23,6 +23,7 @@ class ModelArgs:
 	norm_eps: float = 1e-5
 	device: str = 'cuda'
 	max_seq_len: int = 512
+	use_flash_attn: bool = True
 
 	# MOE Config.
 	num_experts: int = 2
@@ -43,6 +44,7 @@ class SelfAttention(nn.Module):
 		self.groups = self.n_q_heads // self.n_kv_heads
 		# Feature size for each head.
 		self.head_dim = args.dim // args.n_heads
+		self.use_flash_attn = args.use_flash_attn
 
 		# Various weight matrices required.
 		self.wq = nn.Linear(args.dim, self.n_q_heads * self.head_dim, bias=False)
@@ -101,15 +103,23 @@ class SelfAttention(nn.Module):
 		# (batch_size, seq_len_kv, n_q_heads, head_dim) -> (batch_size, n_q_heads, seq_len_kv, head_dim)
 		values = values.transpose(1, 2)
 
-		# Calculating attention scores.
-		# (_, _, seq_len, head_dim) X (_, _, seq_len_kv, head_dim) -> (batch_size, n_q_heads, seq_len, seq_len_kv)
-		scores = torch.matmul(xq, keys.transpose(2, 3)) / math.sqrt(self.head_dim)
-		if mask is not None:
-			scores += mask
-		# (batch_size, n_q_heads, seq_len, seq_len_kv)
-		scores = F.softmax(scores, dim=-1)
-		# (_, _, seq_len, seq_len_kv) X (_, _, seq_len_kv, head_dim) -> (batch_size, n_q_heads, seq_len, head_dim)
-		attention = torch.matmul(scores, values)
+		attention = None
+		if self.use_flash_attn:
+			if mask is not None:
+				attention = F.scaled_dot_product_attention(xq, keys, values, attn_mask=mask)
+			else:
+				attention = F.scaled_dot_product_attention(xq, keys, values, is_causal=False)
+		else:
+			# Calculating attention scores.
+			# (_, _, seq_len, head_dim) X (_, _, seq_len_kv, head_dim) -> (batch_size, n_q_heads, seq_len, seq_len_kv)
+			scores = torch.matmul(xq, keys.transpose(2, 3)) / math.sqrt(self.head_dim)
+			if mask is not None:
+				scores += mask
+			# (batch_size, n_q_heads, seq_len, seq_len_kv)
+			scores = F.softmax(scores, dim=-1)
+			# (_, _, seq_len, seq_len_kv) X (_, _, seq_len_kv, head_dim) -> (batch_size, n_q_heads, seq_len, head_dim)
+			attention = torch.matmul(scores, values)
+		
 		attention = attention.transpose(1, 2).contiguous().view(batch_size, seq_len, -1)
 
 		return self.wo(attention)
