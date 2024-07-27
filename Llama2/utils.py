@@ -1,7 +1,50 @@
-from typing import Tuple
+import gc
+import inspect
+from typing import Tuple, Iterator
 
 import torch
 from torch import nn
+from torch.optim import AdamW
+
+
+def cleanups():
+	gc.collect()
+	torch.cuda.empty_cache()
+	torch.cuda.reset_max_memory_allocated()
+	# Waiting for all kernels & memory to get freed.
+	torch.cuda.synchronize()
+
+
+def setups(device_type: str):
+	print(f"Using device: {device_type}")
+	torch.manual_seed(42)
+	if device_type == 'cuda':
+		torch.cuda.manual_seed(42)
+
+	# Make use of TensorFloat32 to perform matmul faster.
+	torch.set_float32_matmul_precision('high')
+
+
+def configure_optimizer(
+	named_parameters: Iterator[Tuple[str, nn.Parameter]], lr_rate: float, weight_decay: float, device_type: str
+	) -> AdamW:
+	decay_params, non_decay_params = list(), list()
+	for param_name, param in named_parameters:
+		if param.requires_grad:
+			# Weight decay to be applied on vectors with more than or equal to dimension size 2.
+			if param.dim() >= 2:
+				decay_params.append(param)
+			else:
+				non_decay_params.append(param)
+
+	optim_groups = [
+		{'params': decay_params, 'weight_decay': weight_decay}, 
+		{'params': non_decay_params, 'weight_decay': 0.0}
+	]
+	# Checking if AdamW optimizer can be created with fused version.
+	use_fused = 'fused' in inspect.signature(AdamW).parameters and device_type == 'cuda'
+
+	return AdamW(optim_groups, lr=lr_rate, betas=(0.9, 0.95), eps=1e-8, fused=use_fused)
 
 
 def rotatory_freqs(seq_len: int, head_dim: int, device: str, theta: float = 10000.0) -> torch.Tensor:
@@ -13,7 +56,9 @@ def rotatory_freqs(seq_len: int, head_dim: int, device: str, theta: float = 1000
 	return torch.polar(torch.ones_like(freqs), freqs).to(device)
 
 
-def apply_rotatory_emb(q: torch.Tensor, k: torch.Tensor, freqs: torch.Tensor, device: str) -> Tuple[torch.Tensor, torch.Tensor]:
+def apply_rotatory_emb(
+	q: torch.Tensor, k: torch.Tensor, freqs: torch.Tensor, device: str
+	) -> Tuple[torch.Tensor, torch.Tensor]:
 	q_ = torch.view_as_complex(q.float().reshape(*q.shape[:-1], -1, 2))
 	k_ = torch.view_as_complex(k.float().reshape(*k.shape[:-1], -1, 2))
 	# Reshape the freqs tensor to match the shape of the input tensor. So we 
