@@ -8,3 +8,6 @@
 * Model Compilation
 * Mixed Precision Training
 * Flash Attention
+
+# Distributed Training
+* DDP

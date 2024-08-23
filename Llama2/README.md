@@ -11,6 +11,10 @@ on dialogues from a play. The model is a miniature version of the actual Llama-2
 * Total KV Heads = 2
 * Vocab Size = 32001
 
+# DDP Based Distributed Training
+* Command to initiate training on single node with multiple GPUs: 
+  **torchrun --standalone --nproc-per-node=<NUM_GPUS> ddp_train.py**
+
 # Results
 
 * Text Generation

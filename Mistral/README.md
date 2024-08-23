@@ -18,6 +18,10 @@ infrastructure constraints.
 ### Training Dataset
 The training dataset is same as the one present inside the Llama2 folder. Check the file named **input.txt**.
 
+# DDP Based Distributed Training
+* Command to initiate training on single node with multiple GPUs: 
+  **torchrun --standalone --nproc-per-node=<NUM_GPUS> ddp_train.py**
+
 ### Results
 
 * Text Generation
