@@ -1,6 +1,7 @@
+from typing import Tuple, Iterator, Optional
 import gc
 import inspect
-from typing import Tuple, Iterator
+from dataclasses import dataclass
 
 import torch
 from torch import nn
@@ -14,7 +15,6 @@ def cleanups():
 	# Waiting for all kernels & memory to get freed.
 	torch.cuda.synchronize()
 
-
 def setups(device_type: str):
 	print(f"Using device: {device_type}")
 	torch.manual_seed(42)
@@ -23,7 +23,7 @@ def setups(device_type: str):
 
 	# Make use of TensorFloat32 to perform matmul faster.
 	torch.set_float32_matmul_precision('high')
-
+	torch.set_default_dtype(torch.bfloat16)
 
 def configure_optimizer(
 	named_parameters: Iterator[Tuple[str, nn.Parameter]], lr_rate: float, weight_decay: float, device_type: str
@@ -46,29 +46,26 @@ def configure_optimizer(
 
 	return AdamW(optim_groups, lr=lr_rate, betas=(0.9, 0.95), eps=1e-8, fused=use_fused)
 
-
-def rotatory_freqs(seq_len: int, head_dim: int, device: str, theta: float = 10000.0) -> torch.Tensor:
+def rotary_freqs(seq_len: int, head_dim: int, device: str, theta: float = 10000.0) -> torch.Tensor:
 	assert head_dim % 2 == 0, "Feature dimensions should be divisible by 2"
-	freqs = 1.0 / (theta ** (torch.arange(0, head_dim, 2) / head_dim))
-	t = torch.arange(seq_len)
+	t = torch.arange(seq_len, device=device)
+	freqs = 1.0 / (theta ** (torch.arange(0, head_dim, 2, device=device) / head_dim))
 	# Polar operation needs full precision.
 	freqs = torch.outer(t, freqs).to(torch.float32)
-	return torch.polar(torch.ones_like(freqs), freqs).to(device)
+	return torch.polar(torch.ones_like(freqs), freqs)
 
-
-def apply_rotatory_emb(
-	q: torch.Tensor, k: torch.Tensor, freqs: torch.Tensor, device: str
-	) -> Tuple[torch.Tensor, torch.Tensor]:
+def apply_rotary_emb(
+	q: torch.Tensor, k: torch.Tensor, freqs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 	q_ = torch.view_as_complex(q.float().reshape(*q.shape[:-1], -1, 2))
 	k_ = torch.view_as_complex(k.float().reshape(*k.shape[:-1], -1, 2))
-	# Reshape the freqs tensor to match the shape of the input tensor. So we 
-	# need to add the batch dimension and the head dimension.
+	# Reshape the freqs tensor to match the shape of the input tensor. So we need to add the batch dimension and the 
+	# head dimension.
 	# (seq_Len, head_dim/2) --> (1, seq_Len, 1, head_dim/2).
 	freqs = freqs.unsqueeze(0).unsqueeze(2)
 	q_rotated = torch.view_as_real(q_ * freqs).flatten(3).to(torch.get_default_dtype())
 	k_rotated = torch.view_as_real(k_ * freqs).flatten(3).to(torch.get_default_dtype())
 
-	return q_rotated.to(device), k_rotated.to(device)
+	return q_rotated, k_rotated
 
 def repeat_kv(k: torch.Tensor, v: torch.Tensor, groups: int) -> Tuple[torch.Tensor, torch.Tensor]:
 	batch_size, seq_len, n_kv_heads, head_dim = k.shape
@@ -86,7 +83,6 @@ def repeat_kv(k: torch.Tensor, v: torch.Tensor, groups: int) -> Tuple[torch.Tens
 
 	return repeat_k, repeat_v
 
-
 class RMSNorm(nn.Module):
 	def __init__(self, dim: int, eps: float = 1e-6):
 		super(RMSNorm, self).__init__()
@@ -96,3 +92,26 @@ class RMSNorm(nn.Module):
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		rms = torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
 		return x * rms * self.gamma
+
+@dataclass
+class ModelArgs:
+	dim: int = 512
+	n_layers: int = 4
+	n_heads: int = 8
+	n_kv_heads: Optional[int] = 4
+	# This will be set using the tokenizer.
+	vocab_size: int = -1
+	# Making SwiGLU hidden layer size multiple of 32. This is because of how GPU works (warp size being 32).
+	multiplier_of: int = 32
+	ff_dim_multiplier: Optional[float] = None
+	norm_eps: float = 1e-5
+	device: str = "cuda"
+	use_flash_attn: bool = True
+	
+	# Needed for kv cache
+	max_batch_size: int = 32
+	max_seq_len: int = 512
+
+	# MOE Config.
+	num_experts: int = 4
+	topk: int = 2

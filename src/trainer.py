@@ -26,7 +26,7 @@ class Trainer:
 			print(f"Train Loss after {epoch} epoch: {train_loss}")
 			if min_loss > train_loss:
 				min_loss = train_loss
-				self.model.save_ckpt(epoch, self.optimizer, path.join(self.model_save_dir, self.ckpt))
+				self.model.save_ckpt(epoch, path.join(self.model_save_dir, self.ckpt), self.optimizer)
 
 	def train_ddp(self):
 		device = self.kwargs['DEVICE']
@@ -34,10 +34,11 @@ class Trainer:
 		for epoch in range(1, self.epoch + 1):
 			self.train_dataloader.sampler.set_epoch(epoch)
 			train_loss = self._train_step()
-			print(f"Train Loss after {epoch} epoch: {train_loss}")
-			if device == 0 and min_loss > train_loss:
-				min_loss = train_loss
-				self.model.module.save_ckpt(epoch, self.optimizer, path.join(self.model_save_dir, self.ckpt))
+			if device == 0:
+				print(f"Train Loss after {epoch} epoch: {train_loss}")
+				if min_loss > train_loss:
+					min_loss = train_loss
+					self.model.module.save_ckpt(epoch, path.join(self.model_save_dir, self.ckpt), self.optimizer)
 
 	def _train_step(self) -> float:
 		device = self.kwargs.get('DEVICE', "cpu")
@@ -50,9 +51,9 @@ class Trainer:
 			# Clearing gradients from last run.
 			self.optimizer.zero_grad()
 			with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=use_mix_precision):
-				predictions = self.model(input_token_ids, 0)
+				predictions = self.model(input_token_ids)
 				loss = F.cross_entropy(
-					predictions.view(-1, len(self.tokenizer)), target_token_ids.view(-1), 
+					predictions.view(-1, predictions.shape[-1]), target_token_ids.view(-1), 
 					ignore_index=self.tokenizer.pad_token_id
 				)
 			# Calculte loss backwards and update model weights.
