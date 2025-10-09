@@ -27,13 +27,18 @@ llms/
 │   └── input.txt      		# Training Dataset
 │
 ├── results/
-│   ├── Llama2.md           # LLaMA-2 results
+│   ├── DeepSeek.md         # DeepSeek results
+│   ├── Llama2.md           # Llama-2 results
 │   └── Mistral.md          # Mistral results
 │
 ├── src/
+│	├── layers/
+│	│   ├── attention.py    # Different Attention Layers Implementation
+│   │   └── norm.py         # Different Normalization Layers Implementation
 │	├── models/
-│   │	├── llama2.py   	# LLaMA-2 model implementation
-│   │   └── mistral.py 		# Mistral base and MoE models implementation
+│   │	├── deepseek.py   	# DeepSeek model implementation
+│   │   ├── llama2.py 		# Llama-2 model implementation
+│   │   └── mistral.py      # Mistral base and MoE models implementation
 │   │
 │   ├── dataloader.py       # Custom Dataloader   
 │   ├── trainer.py        	# Generic training loop
@@ -41,6 +46,7 @@ llms/
 │
 ├── train.py   		   		# Training Script
 ├── test.py            		# Testing Script
+├── train_config.yaml       # Training Config 
 │
 └── README.md          		# Project Documentation
 ```
@@ -53,7 +59,7 @@ llms/
 python3 train.py
 ```
 
-**NOTE** Edit other parameters inside `train.py` as per the need before going for a run.
+**NOTE** Edit training parameters inside `train.py` & `train_config.yaml` as per the need before going for a run.
 
 ### Testing
 
@@ -61,7 +67,7 @@ python3 train.py
 python3 test.py
 ```
 
-**NOTE** Edit other parameters inside `test.py` as per the need before going for the run.
+**NOTE** Edit other parameters inside `test.py` & `train_config.yaml` as per the need before going for the run.
 
 ### DDP Based Distributed Training
 
@@ -70,4 +76,4 @@ python3 test.py
 torchrun --standalone --nproc-per-node=<NUM_GPUS> train.py --ddp
 ```
 
-**NOTE** Edit other parameters inside `train.py` as per the need before going for a run.
+**NOTE** Edit other parameters inside `train.py` & `train_config.yaml` as per the need before going for a run.

@@ -8,43 +8,40 @@ from torch.utils.data import DataLoader
 
 
 class Trainer:
-	def __init__(self, model, tokenizer, optimizer, epoch: int, train_dataloader: DataLoader, model_save_dir: str, 
-		checkpoint: str, kwargs: Dict[str, Any]):
+	def __init__(self, model, tokenizer, optimizer, train_dataloader: DataLoader, **kwargs: Dict[str, Any]):
 		self.model = model
 		self.tokenizer = tokenizer
 		self.optimizer = optimizer
-		self.epoch = epoch
 		self.train_dataloader = train_dataloader
-		self.model_save_dir = model_save_dir
-		self.ckpt = checkpoint
+		self.model_save_path = path.join(kwargs['model_save_dir'], kwargs['ckpt'])
 		self.kwargs = kwargs
 
 	def train(self):
-		min_loss = float("inf")
-		for epoch in range(1, self.epoch + 1):
+		epoch, min_loss = self.kwargs['epoch'], float("inf")
+		for e in range(1, epoch + 1):
 			train_loss = self._train_step()
-			print(f"Train Loss after {epoch} epoch: {train_loss}")
+			print(f"Train Loss after {e} epoch: {train_loss}")
 			if min_loss > train_loss:
 				min_loss = train_loss
-				self.model.save_ckpt(epoch, path.join(self.model_save_dir, self.ckpt), self.optimizer)
+				self.model.save_ckpt(e, self.model_save_path, self.optimizer)
 
 	def train_ddp(self):
-		device = self.kwargs['DEVICE']
-		min_loss = float("inf")
-		for epoch in range(1, self.epoch + 1):
-			self.train_dataloader.sampler.set_epoch(epoch)
+		device = self.kwargs['device']
+		epoch, min_loss = self.kwargs['epoch'], float("inf")
+		for e in range(1, epoch + 1):
+			self.train_dataloader.sampler.set_epoch(e)
 			train_loss = self._train_step()
 			if device == 0:
-				print(f"Train Loss after {epoch} epoch: {train_loss}")
+				print(f"Train Loss after {e} epoch: {train_loss}")
 				if min_loss > train_loss:
 					min_loss = train_loss
-					self.model.module.save_ckpt(epoch, path.join(self.model_save_dir, self.ckpt), self.optimizer)
+					self.model.module.save_ckpt(e, self.model_save_path, self.optimizer)
 
 	def _train_step(self) -> float:
-		device = self.kwargs.get('DEVICE', "cpu")
-		device_type = self.kwargs.get('DEVICE_TYPE', "cpu")
-		use_mix_precision = self.kwargs.get('USE_MIX_PRECISION', True)
-		gradient_clip = self.kwargs.get('GRADIENT_CLIP', 1.0)
+		device = self.kwargs.get('device')
+		device_type = self.kwargs.get('device_type')
+		use_mix_precision = self.kwargs.get('use_mix_precision', True)
+		gradient_clip = self.kwargs.get('gradient_clip', 1.0)
 		running_loss = 0.0
 		for input_token_ids, target_token_ids in self.train_dataloader:
 			input_token_ids, target_token_ids = input_token_ids.to(device), target_token_ids.to(device)
