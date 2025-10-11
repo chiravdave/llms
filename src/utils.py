@@ -1,12 +1,40 @@
-from typing import Tuple, Iterator, Optional
+from typing import Any, Dict, Tuple, Iterator, Optional
 import gc
 import inspect
 from dataclasses import dataclass
+from yaml import safe_load
 
 import torch
 from torch import nn
 from torch.optim import AdamW
 
+
+@dataclass
+class ModelArgs:
+	dim: int = 512
+	n_layers: int = 4
+	n_heads: int = 8
+	n_kv_heads: Optional[int] = 4
+	# This will be set using the tokenizer.
+	vocab_size: int = -1
+	# Making SwiGLU hidden layer size multiple of 32. This is because of how GPU works (warp size being 32).
+	multiplier_of: int = 32
+	ff_dim_multiplier: Optional[float] = None
+	norm_eps: float = 1e-5
+	device: str = "cuda"
+	use_flash_attn: bool = True
+	# Needed for rotary embeddings.	
+	max_seq_len: int = 512
+
+@dataclass
+class MistralModelArgs(ModelArgs):
+	# MOE Config.
+	num_experts: int = 4
+	topk: int = 2
+
+@dataclass
+class DeepSeekModelArgs(ModelArgs):
+	latent_dim: int = 32
 
 def cleanups():
 	gc.collect()
@@ -83,35 +111,6 @@ def repeat_kv(k: torch.Tensor, v: torch.Tensor, groups: int) -> Tuple[torch.Tens
 
 	return repeat_k, repeat_v
 
-class RMSNorm(nn.Module):
-	def __init__(self, dim: int, eps: float = 1e-6):
-		super(RMSNorm, self).__init__()
-		self.eps = eps
-		self.gamma = nn.Parameter(torch.ones(dim))
-
-	def forward(self, x: torch.Tensor) -> torch.Tensor:
-		rms = torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
-		return x * rms * self.gamma
-
-@dataclass
-class ModelArgs:
-	dim: int = 512
-	n_layers: int = 4
-	n_heads: int = 8
-	n_kv_heads: Optional[int] = 4
-	# This will be set using the tokenizer.
-	vocab_size: int = -1
-	# Making SwiGLU hidden layer size multiple of 32. This is because of how GPU works (warp size being 32).
-	multiplier_of: int = 32
-	ff_dim_multiplier: Optional[float] = None
-	norm_eps: float = 1e-5
-	device: str = "cuda"
-	use_flash_attn: bool = True
-	
-	# Needed for kv cache
-	max_batch_size: int = 32
-	max_seq_len: int = 512
-
-	# MOE Config.
-	num_experts: int = 4
-	topk: int = 2
+def load_train_config(fname: str, model_name: str) -> Dict[str, Any]:
+	with open(fname, 'r') as f:
+		return safe_load(f)[model_name]

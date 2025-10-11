@@ -1,0 +1,50 @@
+llama2:
+  tokenizer: "Qwen/Qwen3-4B"
+  save:
+    model_save_dir: "trained-models/small-llama2"
+    ckpt: "model.pt"
+  model_args:
+    max_seq_len: 1024
+    dim: 512
+    n_layers: 4
+    n_heads: 8
+    n_kv_heads: 4
+  hyper_params:
+    epoch: 30
+    batch_size: 16
+    gradient_clip: 1.0
+    use_mix_precision: true
+mistral:
+  tokenizer: "Qwen/Qwen3-4B"
+  save:
+    model_save_dir: "trained-models/small-mistral"
+    ckpt: "model.pt"
+  model_args:
+    max_seq_len: 1024
+    dim: 512
+    n_layers: 4
+    n_heads: 8
+    n_kv_heads: 4
+    num_experts: 4
+    topk: 2
+  hyper_params:
+    epoch: 30
+    batch_size: 16
+    gradient_clip: 1.0
+    use_mix_precision: true
+deepseek:
+  tokenizer: "Qwen/Qwen3-4B"
+  save:
+    model_save_dir: "trained-models/small-deepseek"
+    ckpt: "model.pt"
+  model_args:
+    max_seq_len: 1024
+    dim: 512
+    n_layers: 4
+    n_heads: 8
+    latent_dim: 32
+  hyper_params:
+    epoch: 30
+    batch_size: 16
+    gradient_clip: 1.0
+    use_mix_precision: true
