@@ -8,6 +8,7 @@ Models (LLMs), including LLaMA-2 and Mistral (Base + Mixture of Experts). It als
 
 * Llama-2
 * Mistral
+* DeepSeek-V2
 
 ## Optimization Techniques Used
 
@@ -67,7 +68,7 @@ python3 train.py
 python3 test.py
 ```
 
-**NOTE** Edit other parameters inside `test.py` & `train_config.yaml` as per the need before going for the run.
+**NOTE**: Edit other parameters inside `test.py` & `train_config.yaml` as per the need before going for the run.
 
 ### DDP Based Distributed Training
 
@@ -76,4 +77,4 @@ python3 test.py
 torchrun --standalone --nproc-per-node=<NUM_GPUS> train.py --ddp
 ```
 
-**NOTE** Edit other parameters inside `train.py` & `train_config.yaml` as per the need before going for a run.
+**NOTE**: Edit other parameters inside `train.py` & `train_config.yaml` as per the need before going for a run.
