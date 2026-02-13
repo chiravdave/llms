@@ -1,4 +1,4 @@
-# LLMs From Scratch
+# LLMs From Scratch [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/chiravdave/llms)
 
 This repository provides a from-scratch implementation, training, and testing setup for state-of-the-art Large Language 
 Models (LLMs), including LLaMA-2 and Mistral (Base + Mixture of Experts). It also explores advanced optimization and distributed training techniques used in modern LLM pipelines.
